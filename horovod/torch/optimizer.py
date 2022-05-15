@@ -150,14 +150,17 @@ class _DistributedOptimizer(torch.optim.Optimizer):
 
     def synchronize(self):
         missing_p = self._requires_update - set(self._handles.keys())
+        # 处理missing的param
         for p in missing_p:
             handle, ctx = self._allreduce_grad_async(p)
             self._handles[p] = (handle, ctx)
 
+        # 处理handle为none的param
         for p, (handle, ctx) in self._handles.items():
             if handle is None:
                 handle, ctx = self._allreduce_grad_async(p)
                 self._handles[p] = (handle, ctx)
+                
         for p, (handle, ctx) in self._handles.items():
             output = synchronize(handle)
             self._allreduce_delay[p] = self.backward_passes_per_step

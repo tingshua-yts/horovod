@@ -84,7 +84,7 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
       continue;
     }
 
-    // Keep track of cache hits
+    // Keep track of cache hits,这个能力受环境变量控制
     if (response_cache_.capacity() > 0) {
       auto cache_ = response_cache_.cached(message);
       if (cache_ == ResponseCache::CacheState::HIT) {
@@ -217,11 +217,13 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
         Request message = message_queue_tmp.front();
         message_queue_tmp.pop_front();
 
+        // 处理JOIN请求
         if (message.request_type() == Request::JOIN) {
           state.joined_size++;
           continue;
         }
 
+        // 判断当前message是否可以进行reduce(注：这个message是协调者当前所在rank的)
         bool reduce = IncrementTensorCount(message, state.joined_size);
         stall_inspector_.RecordUncachedTensorStart(
             message.tensor_name(), message.request_rank(), size_);
@@ -231,10 +233,12 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
       }
 
       // Receive ready tensors from other ranks
+      // 接收通过mpi或gloo的通信原语非本机rank的message，存储到ready_list中; ready_list并没有使用
       std::vector<RequestList> ready_list;
       RecvReadyTensors(ready_to_reduce, ready_list);
 
       // Process messages.
+      // 处理每一个rank的消息，可能为JOIN消息，ps ：能发送JOIN消息说明group都已经创建完成了
       for (int i = 1; i < size_; ++i) {
         LOG(TRACE) << "Adding messages from rank " << i;
         auto received_message_list = ready_list[i];
@@ -294,17 +298,21 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
         }
       }
 
+      // 将所有已经ready的tensor放到response中
       for (auto& tensor_name : ready_to_reduce) {
         Response response = ConstructResponse(tensor_name, state.joined_size);
         responses.push_back(std::move(response));
       }
+      
+      // A function that indicates that the rank finished processing data. 
+      // All ranks that did not call join() continue to process allreduce operations. 
       if (state.joined_size == size_) {
         // All ranks did Join(). Send the response, reset joined size.
         Response join_response;
         join_response.set_response_type(Response::JOIN);
         join_response.add_tensor_name(JOIN_TENSOR_NAME);
         responses.push_back(std::move(join_response));
-        state.joined_size = 0;
+        state.joined_size = 0; // 
       }
       response_list = FuseResponses(responses);
       response_list.set_shutdown(should_shut_down);

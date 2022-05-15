@@ -116,6 +116,7 @@ def _allreduce_async(tensor, output, name, op, prescale_factor, postscale_factor
 
     function = _check_function(_allreduce_function_factory, tensor)
     try:
+        # 这里调用了function，并返回一个handle用于结果的同步等待
         handle = getattr(mpi_lib, function)(tensor, output, divisor,
                                             name.encode() if name is not None else _NULL, op,
                                             prescale_factor, postscale_factor)

@@ -276,26 +276,39 @@ def launch_gloo_elastic(command, exec_command, settings, env, get_common_interfa
     if settings.output_filename:
         _mkdir_p(settings.output_filename)
 
+    # 创建elastic driver
     driver = ElasticDriver(rendezvous, settings.discovery,
                            settings.min_np, settings.max_np,
                            timeout=settings.elastic_timeout,
                            reset_limit=settings.reset_limit,
                            verbose=settings.verbose)
-
+    # 创建rendezvous handler
     handler = create_rendezvous_handler(driver)
+
+    # 启动rendezvous server
     global_rendezv_port = rendezvous.start(handler)
+
+    # 等待node可用
     driver.wait_for_available_slots(settings.num_proc)
 
     nics = get_common_interfaces(driver)
     server_ip = network.get_driver_ip(nics)
 
     event = register_shutdown_event()
+    # 构建远程执行的command，包含了ssh
     run_command = get_run_command(command, server_ip, nics, global_rendezv_port, elastic=True)
+
+    # 创建Elastic worker create fn
     create_worker = _create_elastic_worker_fn(exec_command, run_command, env, event)
 
+    # 启动driver
     driver.start(settings.num_proc, create_worker)
+
+    # 等待process的执行结果
     res = driver.get_results()
-    driver.stop()
+
+    # 终止drop
+    driver.stop() 
 
     if res.error_message is not None:
         raise RuntimeError(res.error_message)

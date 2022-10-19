@@ -145,21 +145,22 @@ class ObjectState(State):
 
 
 def run_fn(func, reset):
-    @functools.wraps(func)
+    # @functools.wraps(func) python中的装饰器，保证wrapper具有同func相同的属性，例如function name， docstring、argument
+    @functools.wraps(func) 
     def wrapper(state, *args, **kwargs):
-        notification_manager.init()
-        notification_manager.register_listener(state)
+        notification_manager.init() ##
+        notification_manager.register_listener(state) ##
 
         try:
             while True:
-                state.sync()
+                state.sync() # 同步state
 
                 try:
-                    return func(state, *args, **kwargs)
+                    return func(state, *args, **kwargs) # 执行训练换算
                 except HorovodInternalError:
-                    state.restore()
+                    state.restore()  # 捕获HorovodInternalError异常，重新读取上一次commit的state
                 except HostsUpdatedInterrupt:
-                    pass
+                    pass # HostsUpdatedInterrupt 异常，对应着节点变动的异常，仅重启即可
 
                 reset()
                 state.on_reset()

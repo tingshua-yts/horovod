@@ -72,6 +72,7 @@ std::shared_ptr<gloo::Context> Rendezvous(const std::string& prefix,
                                           int rank, int size,
                                           std::shared_ptr<gloo::transport::Device>& dev,
                                           std::chrono::milliseconds timeout) {
+  // 创建store                                            
   std::unique_ptr<GlooStore> store;
   if (server_addr_env != nullptr) {
     std::string server_addr = server_addr_env;
@@ -82,6 +83,7 @@ std::shared_ptr<gloo::Context> Rendezvous(const std::string& prefix,
   LOG(DEBUG) << prefix << " rendezvous started for rank=" << rank << ", size=" << size
              << ", dev={" << dev->str() << "}";
 
+  // 创建context
   auto context = std::make_shared<gloo::rendezvous::Context>(rank, size);
   context->setTimeout(timeout);
   context->connectFullMesh(*store, dev);
@@ -139,6 +141,7 @@ void GlooContext::Initialize(const std::string& gloo_iface) {
   auto dev = gloo::transport::tcp::CreateDevice(attr);
   auto timeout = GetTimeoutFromEnv();
 
+  //第一次初始化从环境变量中获取获取slotinfo
   auto host_env = std::getenv(HOROVOD_HOSTNAME);
   std::string hostname = host_env != nullptr ? std::string(host_env) : std::string("localhost");
 
@@ -158,10 +161,13 @@ void GlooContext::Initialize(const std::string& gloo_iface) {
   }
 
   bool elastic = GetBoolEnvOrDefault(HOROVOD_ELASTIC, false);
+  // 处理弹性 reinit的情况, 从rendezvous获取slot info
   if (elastic && reset_) {
     LOG(DEBUG) << "elastic mode reinitialization started, reset rank=" << rank << " size=" << size;
     std::string server_addr = rendezvous_addr_env;
     std::string scope = HOROVOD_GLOO_GET_RANK_AND_SIZE;
+
+    //  向RendezvousServer获取最新的slotinfo
     HTTPStore init_store(server_addr, rendezvous_port, scope, rank);
 
     auto key = hostname + ":" + std::to_string(local_rank);
@@ -177,6 +183,7 @@ void GlooContext::Initialize(const std::string& gloo_iface) {
     int last_cross_size = cross_size;
 
     rank = ParseNextInt(ss);
+    // 判断当前节点是否被删除掉
     if (rank == -1) {
       // Signals that this host is not part of the job
       std::ostringstream out;
@@ -205,6 +212,7 @@ void GlooContext::Initialize(const std::string& gloo_iface) {
                   " cross_size: " << last_cross_size << " -> " << cross_size;
   }
 
+  // 创建 Gloo context
   ctx = Rendezvous(HOROVOD_GLOO_GLOBAL_PREFIX,
                    rendezvous_addr_env, rendezvous_port,
                    rank, size, dev, timeout);

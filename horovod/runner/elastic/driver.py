@@ -81,7 +81,9 @@ class ElasticDriver(object):
         self._timeout = timeout or int(os.getenv('HOROVOD_ELASTIC_TIMEOUT', ELASTIC_TIMEOUT_SECS))
 
         self._create_worker_fn = None
-        self._worker_clients = {}
+        # WorkerNotificationClient(addresses, secret_key, self._verbose)
+        # 用于向client发送通知
+        self._worker_clients = {} 
 
         self._worker_registry = WorkerStateRegistry(self, self._host_manager, reset_limit=reset_limit)
         self._results = ResultsRecorder()
@@ -167,8 +169,11 @@ class ElasticDriver(object):
             self._wait_hosts_cond.release()
 
     def _activate_workers(self, min_np):
+        # TODO 为什么还要wait, 因为resume的情况要等待
         logging.info('wait for available slots: {}'.format(min_np))
         current_hosts = self.wait_for_available_slots(min_np)
+                
+        # TODO 为什么返回的是pending slot，因为这里在resume的情况也会被调用
         pending_slots = self._update_host_assignments(current_hosts)
         self._worker_registry.reset(self.world_size())
         self._start_worker_processes(pending_slots)
@@ -271,6 +276,7 @@ class ElasticDriver(object):
     def _start_worker_processes(self, pending_slots):
         for slot_info in pending_slots:
             logging.info('start worker process: {}[{}]'.format(slot_info.hostname, slot_info.local_rank))
+            # 会单独为每个process 调用一次start
             self._start_worker_process(slot_info)
 
     def _start_worker_process(self, slot_info):
@@ -279,6 +285,7 @@ class ElasticDriver(object):
         host_event = self._host_manager.get_host_event(slot_info.hostname)
 
         def run_worker():
+            # shutdown_event和host event用于thread间的同步 
             res = create_worker_fn(slot_info, [shutdown_event, host_event])
             exit_code, timestamp = res
             self._handle_worker_exit(slot_info, exit_code, timestamp)

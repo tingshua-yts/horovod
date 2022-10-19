@@ -25,7 +25,7 @@ SUCCESS = 'SUCCESS'
 FAILURE = 'FAILURE'
 
 
-class WorkerStateRegistry(object):
+class _WorkerStateRegistry(object):
     def __init__(self, driver, host_manager, reset_limit=None, verbose=False):
         self._driver = driver
         self._host_manager = host_manager

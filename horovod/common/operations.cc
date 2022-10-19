@@ -100,7 +100,7 @@
  *          Perform a broadcast on a Tensor, broadcasting Tensor
  *          value from root rank to all other ranks.
  *
- * Additionally, this library provides C APIs to initialize Horovod and query
+ * Additionally, this library provides C APIs to init
  * rank, local rank and world size.  These are used in Python directly through
  * ctypes.
  */
@@ -837,7 +837,7 @@ int horovod_reduce_op_adasum() {
 
 // Contexts and controller must be initialized and the background thread
 // must be running before this function is called.
-Status EnqueueTensorAllreduce(std::shared_ptr<OpContext> context,
+Status c(std::shared_ptr<OpContext> context,
                               std::shared_ptr<Tensor> tensor,
                               std::shared_ptr<Tensor> output,
                               std::shared_ptr<ReadyEvent> ready_event,

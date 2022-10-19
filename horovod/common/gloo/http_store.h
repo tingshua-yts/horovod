@@ -33,7 +33,7 @@ namespace common {
 
 class HTTPStore : public GlooStore {
 public:
-  HTTPStore(const std::string& server_ip, int port, const std::string& scope,
+HTTPStore(const std::string& server_ip, int port, const std::string& scope,
             int rank)
       : rank_(rank) {
     url_prefix_ +=

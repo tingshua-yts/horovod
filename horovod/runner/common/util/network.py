@@ -89,12 +89,14 @@ class BasicService(object):
         self._service_name = service_name
         self._wire = Wire(key)
         self._nics = nics
+        # 创建server
         self._server, _ = find_port(
             lambda addr: socketserver.ThreadingTCPServer(
                 addr, self._make_handler()))
         self._server._block_on_close = True
         self._port = self._server.socket.getsockname()[1]
         self._addresses = self._get_local_addresses()
+        # 启动background thread来执行tcpserver
         self._thread = in_thread(target=self._server.serve_forever)
 
     def _make_handler(self):
@@ -172,6 +174,7 @@ class BasicClient(object):
                 'To fix the problem, you can rename interfaces on '
                 'Linux.'.format(service_name=service_name, addresses=addresses))
 
+    # 对service_name的所有address进行一次探测，查看是否有可用的，如果没有则曝出异常
     def _probe(self, addresses):
         result_queue = queue.Queue()
         threads = []
@@ -190,6 +193,7 @@ class BasicClient(object):
             result[intf].append(addr)
         return result
 
+    # 发送过一次探测
     def _probe_one(self, intf, addr, result_queue):
         for iter in range(self._attempts):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -238,6 +242,7 @@ class BasicClient(object):
             finally:
                 sock.close()
 
+    # 发送一个request
     def _send_one(self, addr, req):
         for iter in range(self._attempts):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -29,7 +29,7 @@ def run(func):
     the state object before executing `func`.
 
     When a worker is added or removed, other workers will raise an exception to bring them back to such a sync
-    point before executing `func` again. This ensures that workers do not diverge when such reset events occur.
+    point before executing `func` again. This ensures that workers do not diverge when such reset
 
     It's important to note that collective operations (e.g., broadcast, allreduce) cannot be the call to
     the wrapped function. Otherwise, new workers could execute these operations during their initialization

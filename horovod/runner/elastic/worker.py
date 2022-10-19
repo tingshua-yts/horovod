@@ -45,22 +45,26 @@ class WorkerNotificationManager(object):
         with self._lock:
             if self._service:
                 return
-
+            # 从环境变量中获取 rendezvous的addr、port、nic,hostname , localrank
             rendezvous_addr = rendezvous_addr or os.environ.get(HOROVOD_GLOO_RENDEZVOUS_ADDR)
             if not rendezvous_addr:
                 return
 
             rendezvous_port = rendezvous_port if rendezvous_port is not None else \
                 int(os.environ.get(HOROVOD_GLOO_RENDEZVOUS_PORT))
-            nic = nic or os.environ.get(HOROVOD_GLOO_IFACE)
+            nic = nic or os.environ.get(HOROVOD_GLOO_IFACE) # 网口 HOROVOD_GLOO_IFACE=eth0
             hostname = hostname or os.environ.get(HOROVOD_HOSTNAME)
             local_rank = local_rank if local_rank is not None else \
                 int(os.environ.get(HOROVOD_LOCAL_RANK))
 
             secret_key = secret.make_secret_key()
+
+            # 构建WorkerNotificationService, 本质是一个socketserver.ThreadingTCPServer
             self._service = WorkerNotificationService(secret_key, nic, self)
 
             value = (self._service.addresses(), secret_key)
+
+            # 向RendezvousServer发送一个kv，k为host+local_rank, v为service的addr和秘钥
             put_data_into_kvstore(rendezvous_addr,
                                   rendezvous_port,
                                   PUT_WORKER_ADDRESSES,
@@ -72,7 +76,8 @@ class WorkerNotificationManager(object):
 
     def remove_listener(self, listener):
         self._listeners.remove(listener)
-
+    
+    # 处理host 的更新，会被service进行调用。实现中会调用TorchState的update接口
     def handle_hosts_updated(self, timestamp):
         for listener in self._listeners:
             listener.on_hosts_updated(timestamp)
@@ -89,7 +94,8 @@ class WorkerNotificationService(network.BasicService):
                                                         key,
                                                         nic)
         self._manager = manager
-
+        
+    # notification时被调用
     def _handle(self, req, client_address):
         if isinstance(req, HostsUpdatedRequest):
             self._manager.handle_hosts_updated(req.timestamp)

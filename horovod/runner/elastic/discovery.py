@@ -79,7 +79,7 @@ class DiscoveredHosts(object):
 class HostManager(object):
     def __init__(self, discovery):
         self._current_hosts = DiscoveredHosts(host_slots={}, host_assignment_order=[])
-        self._hosts_state = defaultdict(HostState)
+        self._hosts_state = defaultdict(HostState) # 存放所有host的状态
         self._discovery = discovery
 
     def update_available_hosts(self):
@@ -99,11 +99,13 @@ class HostManager(object):
     def current_hosts(self):
         return self._current_hosts.update(self._hosts_state)
 
+    # 将一个host标记为backlist
     def blacklist(self, host):
         if not self._hosts_state[host].is_blacklisted():
             logging.warning('blacklist failing host: {}'.format(host))
         self._hosts_state[host].blacklist()
 
+    # 判断一个host是否为处于backlist状态
     def is_blacklisted(self, host):
         return self._hosts_state[host].is_blacklisted()
 

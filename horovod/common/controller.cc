@@ -233,7 +233,7 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
       }
 
       // Receive ready tensors from other ranks
-      // 接收通过mpi或gloo的通信原语非本机rank的message，存储到ready_list中; ready_list并没有使用
+      // 接收通过mpi或gloo的通信原语非本机rank的message，存储到ready_list中; ready_to_reduce并没有使用
       std::vector<RequestList> ready_list;
       RecvReadyTensors(ready_to_reduce, ready_list);
 

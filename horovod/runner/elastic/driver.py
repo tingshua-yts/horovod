@@ -83,7 +83,7 @@ class ElasticDriver(object):
         self._create_worker_fn = None
         # WorkerNotificationClient(addresses, secret_key, self._verbose)
         # 用于向client发送通知
-        self._worker_clients = {} 
+        self._worker_clients = {}
 
         self._worker_registry = WorkerStateRegistry(self, self._host_manager, reset_limit=reset_limit)
         self._results = ResultsRecorder()
@@ -169,11 +169,11 @@ class ElasticDriver(object):
             self._wait_hosts_cond.release()
 
     def _activate_workers(self, min_np):
-        # TODO 为什么还要wait, 因为resume的情况要等待
+        #  为什么还要wait, 因为resume的情况要等待
         logging.info('wait for available slots: {}'.format(min_np))
         current_hosts = self.wait_for_available_slots(min_np)
-                
-        # TODO 为什么返回的是pending slot，因为这里在resume的情况也会被调用
+
+        #  为什么返回的是pending slot，因为这里在resume的情况也会被调用
         pending_slots = self._update_host_assignments(current_hosts)
         self._worker_registry.reset(self.world_size())
         self._start_worker_processes(pending_slots)
@@ -285,7 +285,7 @@ class ElasticDriver(object):
         host_event = self._host_manager.get_host_event(slot_info.hostname)
 
         def run_worker():
-            # shutdown_event和host event用于thread间的同步 
+            # shutdown_event和host event用于thread间的同步
             res = create_worker_fn(slot_info, [shutdown_event, host_event])
             exit_code, timestamp = res
             self._handle_worker_exit(slot_info, exit_code, timestamp)

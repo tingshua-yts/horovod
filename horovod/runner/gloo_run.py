@@ -291,6 +291,7 @@ def launch_gloo_elastic(command, exec_command, settings, env, get_common_interfa
     # 等待node可用
     driver.wait_for_available_slots(settings.num_proc)
 
+    # 获取driver的address，作为rendevous server的address
     nics = get_common_interfaces(driver)
     server_ip = network.get_driver_ip(nics)
 
@@ -308,7 +309,7 @@ def launch_gloo_elastic(command, exec_command, settings, env, get_common_interfa
     res = driver.get_results()
 
     # 终止drop
-    driver.stop() 
+    driver.stop()
 
     if res.error_message is not None:
         raise RuntimeError(res.error_message)

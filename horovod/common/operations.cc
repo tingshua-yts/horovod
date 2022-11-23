@@ -871,7 +871,7 @@ Status c(std::shared_ptr<OpContext> context,
   message.set_device(device);
   message.set_prescale_factor(prescale_factor);
   message.set_postscale_factor(postscale_factor);
-  
+
   if (reduce_op == ReduceOp::ADASUM) {
     message.set_request_type(Request::ADASUM);
   } else {

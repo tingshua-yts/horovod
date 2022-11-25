@@ -272,3 +272,8 @@ class FixedHosts(HostDiscovery):
 
     def set(self, host_slots):
         self._host_slots = host_slots
+
+
+
+
+

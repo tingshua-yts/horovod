@@ -103,16 +103,18 @@ class ElasticSampler(torch.utils.data.Sampler):
         self.remaining_indices = all_indices[self.processed_num:]
 
         self.num_samples = int(math.ceil(len(self.remaining_indices) * 1.0 / self.num_replicas))
-        self.total_size = self.num_samples * self.num_replicas
+        self.total_size = self.num_samples * self.num_replicas # 一共剩余了多少样本
 
     def __iter__(self):
-        self.indices = self.remaining_indices[:]
+        self.indices = self.remaining_indices[:] # 当前剩余需要处理的indices
 
         # add extra samples to make it evenly divisible
+        # 补充一些数据，使得indices能够等于total_size
         self.indices += self.indices[:(self.total_size - len(self.indices))]
         assert len(self.indices) == self.total_size
 
         # subsample
+        # 在indices中选取当前rank的indices，从第rank个位置开始选择，没num_replicas选择一次
         self.indices = self.indices[self.rank:self.total_size:self.num_replicas]
         assert len(self.indices) == self.num_samples
 
